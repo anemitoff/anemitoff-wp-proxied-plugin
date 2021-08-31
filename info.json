@@ -1,0 +1,16 @@
+{
+	"name" : "anemitoff WP Proxied",
+	"slug" : "anemitoff-wp-proxied",
+	"author" : "<a href='https://teamnemitoff.com'>Adam Nemitoff</a>",
+	"version" : "1.0.1",
+	"download_url" : "https://github.com/anemitoff/anemitoff-wp-proxied-plugin/anemitoff-wp-proxied.zip",
+	"requires" : "3.0",
+	"tested" : "5.8",
+	"requires_php" : "7.4",
+	"last_updated" : "2021-08-31 02:10:00",
+	"sections" : {
+		"description" : "When blog is accessed by proxy, links are rewritten to appear as though they belog to proxy origin",
+		"installation" : "Click the activate button and that's it.",
+		"changelog" : ""
+	}
+}
