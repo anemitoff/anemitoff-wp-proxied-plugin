@@ -24,5 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Put php files into zip
-        uses: montudor/action-zip
-          with zip -qq anemitoff-wp-proxied.zip *.php
+        uses: papeloto/action-zip@v1
+          with:
+            files: *.php
+            dest: anemitoff-wp-proxied.zip 
