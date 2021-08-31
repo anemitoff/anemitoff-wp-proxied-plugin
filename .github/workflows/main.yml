@@ -23,9 +23,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      # Runs a single command using the runners shell
       - name: Put php files into zip
+      - uses: actions/checkout@v2
       - uses: montudor/action-zip@v1
       - run: zip -qq anemitoff-wp-proxied.zip *.php
