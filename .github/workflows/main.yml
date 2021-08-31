@@ -28,5 +28,4 @@ jobs:
       # Runs a single command using the runners shell
       - name: Put php files into zip
       - uses: montudor/action-zip@v1
-        with:
-          args: zip -qq anemitoff-wp-proxied.zip *.php
+      - run: zip -qq anemitoff-wp-proxied.zip *.php
