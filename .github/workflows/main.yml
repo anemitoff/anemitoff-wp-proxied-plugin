@@ -19,4 +19,8 @@ jobs:
       - uses: papeloto/action-zip@v1
         with:
           files: anemitoff-wp-proxied.php
-          dest: anemitoff-wp-proxied.zip 
+          dest: anemitoff-wp-proxied.zip
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wp-plugin-package
+          path: anemitoff-wp-proxied.zip
