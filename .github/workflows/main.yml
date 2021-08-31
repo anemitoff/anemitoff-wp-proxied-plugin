@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Build zip package for WP
 
 # Controls when the workflow will run
 on:
@@ -9,22 +9,14 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  package-as-zip:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v2
-      - name: Put php files into zip
-        uses: papeloto/action-zip@v1
+      - uses: papeloto/action-zip@v1
         with:
-          files: *.php
+          files: anemitoff-wp-proxied.php
           dest: anemitoff-wp-proxied.zip 
