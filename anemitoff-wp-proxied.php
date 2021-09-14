@@ -2,7 +2,7 @@
 /*
  * Plugin name: Anemitoff WP Proxied
  * Description: When blog is accessed by proxy, links are rewritten to appear as though they belog to proxy origin
- * Version: 1.0
+ * Version: 1.1.3
  * Author: Adam Nemitoff
  * Author URI: https://teamnemitoff.com
  * License: GPL v3
@@ -11,12 +11,56 @@
 
 if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
     class AnemitoffWpProxiedPlugin {
+        const USE_CANONICAL_HOST = false;
+        const CANONICAL_HOST = 'nassaucandy.com'; // this must reverse proxy to actual blog host
+        const USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST = true;
+
+
+
         function __construct() {
-            add_filter('post_link', [$this, 'updateLink']);
-            add_filter('wp_nav_menu_objects', [$this, 'updateNavMenuLinks']);
+            add_filter('post_link', [$this, 'filterPostLink']);
+            add_filter('wp_nav_menu_objects', [$this, 'filterNavMenuObjects']);
+            add_filter('wp_page_menu_args', [$this,  'filterPageMenuArgs']); // NOOP
+            add_filter('home_url', [$this, 'filterHomeUrl']);
+            add_filter('the_content', [$this, 'filterTheContent']);
+			add_filter('get_custom_logo', [$this, 'getCustomLogo']);
+
+            add_action('init', [$this, 'useCanonicalHostIfForwarded']);
         }
 
-        static function build_url(array $elements) {
+		function getCustomLogo($html) {
+            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? null; 
+            if (!$forwardingHost) return $html;
+            $html = preg_replace('/\/blog/','',$html, 1);
+            return $html;
+        }
+		
+        function useCanonicalHostIfForwarded() {
+            if (!SELF::USE_CANONICAL_HOST) return;
+			
+            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ''; 
+            if (SELF::CANONICAL_HOST == $forwardingHost) {
+                return;
+            }
+
+            $originalUrl = SELF::original_url();
+			if (mb_strpos($originalUrl, 'wp-admin') !== false) {
+				return;
+			}
+			
+			
+            $_SERVER['HTTP_X_FORWARDED_HOST'] = SELF::CANONICAL_HOST;
+            $canonicalUrl = SELF::rewriteUrlForForwarding($originalUrl);
+            wp_redirect($canonicalUrl, SELF::USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST ? 302 : 301);
+            die();
+        }
+
+
+        private static function original_url() {
+            return "$_SERVER[REQUEST_SCHEME]://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+        }
+
+        private static function build_url(array $elements) {
             $e = $elements;
             return
                 (isset($e['host']) ? (
@@ -31,37 +75,53 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
             ;
         }
 
+        private static function rewriteUrlForForwarding($url) {
+            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? "";
+            if ($forwardingHost == "") return $url;
+
+            $linkComponents = parse_url($url);
+            $linkHost = $linkComponents['host'] ?? "";
+            if ($forwardingHost === $linkHost) return $url;
+            if ($linkHost != $_SERVER["HTTP_HOST"]) return $url;
+
+            $linkComponents['scheme'] = "https";
+            $linkComponents['host'] = $forwardingHost;
+            $linkComponents['path'] = '/blog' . ($linkComponents['path'] ?? '');
+            $rewrittenUrl = SELF::build_url($linkComponents);
+            return $rewrittenUrl;
+        }
+
         /**
          * @param WP_Post[] $args
          */
-        function updateNavMenuLinks($args) {
-            if (!isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-                return $args;
-            }
-            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'];
+        function filterNavMenuObjects($args) {
             foreach($args as $arg) {
-                $url = $arg->url;
-                $linkComponents = parse_url($url);
-
-                $linkComponents['scheme'] = "https";
-                $linkComponents['host'] = $forwardingHost;
-                $linkComponents['path'] = '/blog' . $linkComponents['path'];
-                $modifiedUrl = $this->build_url($linkComponents);
-                $arg->url = $modifiedUrl;
+                $arg->url = SELF::rewriteUrlForForwarding($arg->url);
             }
             return $args;
         }
 
-        function updateLink($link) {
-            $linkComponents = parse_url($link);
-            $linkHost = $linkComponents['host'];
-            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $linkHost;
-            if ($forwardingHost == $linkHost) return $link;
+        function filterPostLink($link) {
+            return SELF::rewriteUrlForForwarding($link);
+        }
 
-            $linkComponents['host'] = $forwardingHost;
-            $linkComponents['path'] = '/blog' . $linkComponents['path'];
-            $modifiedLink = SELF::build_url($linkComponents);
-            return $modifiedLink;
+        function filterPageMenuArgs($args) {
+            return  $args;
+        }
+
+        function filterHomeUrl($url) {
+            return SELF::rewriteUrlForForwarding($url);
+        }
+
+        function filterTheContent($subject) {
+            $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? "";
+            if ($forwardingHost == "") return $subject;
+
+            $replace = $forwardingHost . '/blog';
+            $search =  $_SERVER["HTTP_HOST"];
+
+            $modifiedContent = str_replace($search, $replace, $subject);
+            return $modifiedContent;
         }
     }
 

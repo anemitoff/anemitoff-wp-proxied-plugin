@@ -3,7 +3,7 @@
 	"slug" : "anemitoff-wp-proxied",
 	"author" : "<a href='https://teamnemitoff.com'>Adam Nemitoff</a>",
 	"version" : "1.0.1",
-	"download_url" : "https://github.com/anemitoff/anemitoff-wp-proxied-plugin/anemitoff-wp-proxied.zip",
+	"download_url" : "https://github.com/anemitoff/anemitoff-wp-proxied-plugin/releases/latest/download/anemitoff-wp-proxied.zip",
 	"requires" : "3.0",
 	"tested" : "5.8",
 	"requires_php" : "7.4",
