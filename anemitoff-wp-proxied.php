@@ -2,7 +2,7 @@
 /*
  * Plugin name: Anemitoff WP Proxied
  * Description: When blog is accessed by proxy, links are rewritten to appear as though they belog to proxy origin
- * Version: 1.1.6
+ * Version: 1.1.9
  * Author: Adam Nemitoff
  * Author URI: https://teamnemitoff.com
  * License: GPL v3
@@ -43,14 +43,22 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
             }
 
             $originalUrl = SELF::original_url();
-            if (strpos($originalUrl, 'wp-admin') !== false) {
-				return;
-			}
+            $nonRedirectable = ['wp-admin','jetpack','wp-json','preview=true','customize'];
+            foreach($nonRedirectable as $x) {
+                if (strpos($originalUrl, $x) !== false) {
+                    return;
+                }    
+            }
 
-            if (strpos($originalUrl, 'jetpack') !== false) {
-				return;
-			}
-
+			$userAgent = $_SERVER['HTTP_USER_AGENT'];
+			$nonRedirectableUserAgents=['Facebook','linked'];
+            foreach($nonRedirectableUserAgents as $x) {
+                if (strpos($userAgent, $x) !== false) {
+                    return;
+                }    
+            }
+			
+			
             $_SERVER['HTTP_X_FORWARDED_HOST'] = SELF::CANONICAL_HOST;
             $canonicalUrl = SELF::rewriteUrlForForwarding($originalUrl);
 			
@@ -61,7 +69,7 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
 
         private static function original_url() {
 			$requestScheme = $_SERVER['REQUEST_SCHEME'] ?? 'https';
-            return "$requestScheme://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+            return "$requestScheme://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]$_SERVER[QUERY_STRING]";
         }
 
         private static function build_url(array $elements) {
