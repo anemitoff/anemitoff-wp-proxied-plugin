@@ -2,7 +2,7 @@
 /*
  * Plugin name: Anemitoff WP Proxied
  * Description: When blog is accessed by proxy, links are rewritten to appear as though they belog to proxy origin
- * Version: 1.1.9
+ * Version: 1.1.10
  * Author: Adam Nemitoff
  * Author URI: https://teamnemitoff.com
  * License: GPL v3
@@ -15,6 +15,7 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
         const CANONICAL_HOST = 'www.nassaucandy.com';
         //const CANONICAL_HOST = 'ncweb241.teamnemitoff.com'; // this must reverse proxy to actual blog host
         const USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST = true;
+		const NON_REDIRECTABLE = ['wp-admin','jetpack','wp-json','preview=true','customize','cron'];
 
         function __construct() {
             add_filter('post_link', [$this, 'filterPostLink']);
@@ -43,15 +44,15 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
             }
 
             $originalUrl = SELF::original_url();
-            $nonRedirectable = ['wp-admin','jetpack','wp-json','preview=true','customize'];
+            $nonRedirectable = SELF::NON_REDIRECTABLE;
             foreach($nonRedirectable as $x) {
                 if (strpos($originalUrl, $x) !== false) {
                     return;
                 }    
             }
 
-			$userAgent = $_SERVER['HTTP_USER_AGENT'];
-			$nonRedirectableUserAgents=['Facebook','linked'];
+			$userAgent = strtolower($_SERVER['HTTP_USER_AGENT']);
+			$nonRedirectableUserAgents=['facebook','linked'];
             foreach($nonRedirectableUserAgents as $x) {
                 if (strpos($userAgent, $x) !== false) {
                     return;
