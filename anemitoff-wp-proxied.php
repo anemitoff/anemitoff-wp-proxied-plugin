@@ -14,8 +14,8 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
         const USE_CANONICAL_HOST = true;
         const CANONICAL_HOST = 'www.nassaucandy.com';
         //const CANONICAL_HOST = 'ncweb241.teamnemitoff.com'; // this must reverse proxy to actual blog host
-        const USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST = true;
-		const NON_REDIRECTABLE = ['wp-admin','jetpack','wp-json','preview=true','customize','cron'];
+        const USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST = false; //temporary doesn't change URL in address bar
+		const NON_REDIRECTABLE = ['wp-admin','jetpack','wp-json','preview=true','customize','cron','wp-find-template'];
 
         function __construct() {
             add_filter('post_link', [$this, 'filterPostLink']);
@@ -24,7 +24,6 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
             add_filter('home_url', [$this, 'filterHomeUrl']);
             add_filter('the_content', [$this, 'filterTheContent']);
             add_filter('get_custom_logo', [$this, 'getCustomLogo']);
-
             add_action('init', [$this, 'useCanonicalHostIfForwarded']);
         }
 
@@ -36,12 +35,15 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
         }
 
         function useCanonicalHostIfForwarded() {
+			$isAdam = strpos($_SERVER['QUERY_STRING'],'adam') !== false;
+
+
+			
             if (!SELF::USE_CANONICAL_HOST) return;
 
             $forwardingHost = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ''; 
-            if (SELF::CANONICAL_HOST == $forwardingHost) {
-                return;
-            }
+            $shouldNotRedirect = SELF::CANONICAL_HOST == $forwardingHost;
+            if ($shouldNotRedirect) return;
 
             $originalUrl = SELF::original_url();
             $nonRedirectable = SELF::NON_REDIRECTABLE;
@@ -59,11 +61,16 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
                 }    
             }
 			
-			
             $_SERVER['HTTP_X_FORWARDED_HOST'] = SELF::CANONICAL_HOST;
             $canonicalUrl = SELF::rewriteUrlForForwarding($originalUrl);
-			
-            wp_redirect($canonicalUrl, SELF::USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST ? 302 : 301);
+
+            if ($isAdam) {
+				wp_send_json(["redirectTarget"=>$canonicalUrl]);
+				return;
+			}
+
+            nocache_headers();
+            wp_redirect($canonicalUrl, SELF::USE_TEMPORARY_REDIRECT_FOR_CANONICAL_HOST ? 302 : 301, 'nc-wp-proxied');
             die();
         }
 
@@ -103,6 +110,7 @@ if (!class_exists(AnemitoffWpProxiedPlugin::class)) {
             $rewrittenUrl = SELF::build_url($linkComponents);
             return $rewrittenUrl;
         }
+		
 
         /**
          * @param WP_Post[] $args
